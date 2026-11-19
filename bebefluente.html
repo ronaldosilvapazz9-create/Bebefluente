@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bebê Fluente">
+    <title>Bebê Fluente</title>
+    <!-- Ícone e Manifesto PWA Gerados Automaticamente -->
+    <link id="app-icon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='110' fill='%234f46e5'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-size='320'%3E🐣%3C/text%3E%3C/svg%3E">
+    <link id="apple-touch-icon" rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='110' fill='%234f46e5'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-size='320'%3E🐣%3C/text%3E%3C/svg%3E">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js para efeitos sonoros via sintetizador -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Fonte Divertida Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+            touch-action: manipulation;
+        }
+        .font-game {
+            font-family: 'Fredoka One', cursive;
+        }
+        .btn-syllable {
+            transition: all 0.2s ease;
+            box-shadow: 0px 6px 0px #3b82f6;
+        }
+        .btn-syllable:active {
+            transform: translateY(4px);
+            box-shadow: 0px 2px 0px #3b82f6;
+        }
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(-5%); }
+            50% { transform: translateY(5%); }
+        }
+        .animate-bounce-slow {
+            animation: bounce-slow 2s infinite;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 select-none">
+
+    <!-- Container Principal do Jogo -->
+    <div id="game-card" class="bg-white/95 backdrop-blur-md rounded-3xl p-6 md:p-8 max-w-xl w-full shadow-2xl border-4 border-white text-center relative overflow-hidden">
+        
+        <!-- Tela de Capa / Boas-Vindas (Bebê Fluente) -->
+        <div id="cover-screen" class="space-y-6 py-2 animate-pop">
+            <!-- Bandeiras: Itália, EUA, Espanha, França -->
+            <div class="flex justify-center items-center gap-4 text-4xl md:text-5xl bg-indigo-50/70 py-3 px-4 rounded-2xl border-2 border-indigo-100 shadow-inner">
+                <span title="Itália">🇮🇹</span>
+                <span title="EUA">🇺🇸</span>
+                <span title="Espanha">🇪🇸</span>
+                <span title="França">🇫🇷</span>
+            </div>
+
+            <!-- Pintinho saindo do ovo no centro -->
+            <div class="text-8xl md:text-9xl animate-bounce-slow py-2 drop-shadow-md">
+                🐣
+            </div>
+
+            <!-- Título Grande + Créditos -->
+            <div class="space-y-1">
+                <h1 class="text-5xl md:text-6xl font-game text-indigo-600 tracking-wide drop-shadow-sm">
+                    Bebê Fluente
+                </h1>
+                <p class="text-xs md:text-sm text-gray-500 font-bold tracking-wide">
+                    Desenvolvido por Ronaldo Paz
+                </p>
+            </div>
+
+            <!-- Botão Bora Aprender -->
+            <div class="pt-2 space-y-3">
+                <button onclick="enterLanguageScreen()" class="w-full py-4 bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-300 hover:to-amber-300 text-yellow-950 font-game text-2xl md:text-3xl rounded-2xl shadow-[0_6px_0_#d97706] active:translate-y-1 active:shadow-[0_2px_0_#d97706] transition-all">
+                    Bora aprender 🚀
+                </button>
+                <button id="install-app-btn" onclick="installPWA()" class="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-sm rounded-2xl border-2 border-indigo-200 transition-all flex items-center justify-center gap-2 shadow-sm">
+                    📲 Adicionar à Tela Inicial (App Android)
+                </button>
+            </div>
+
+            <!-- Modal/Aviso de Instalação Manual caso o navegador não dispare o prompt automático -->
+            <div id="install-guide" class="hidden bg-indigo-50 border-2 border-indigo-300 rounded-2xl p-3.5 text-left text-xs text-indigo-900 space-y-1.5 animate-pop">
+                <div class="flex justify-between items-center font-bold text-indigo-700">
+                    <span>📲 Como instalar no Android / iPhone:</span>
+                    <button onclick="document.getElementById('install-guide').classList.add('hidden')" class="text-indigo-500 hover:text-indigo-800 font-black px-1">✕</button>
+                </div>
+                <p>1. Toque nos <strong>3 pontinhos (⋮)</strong> no canto superior do Chrome (ou <strong>Compartilhar</strong> no Safari).</p>
+                <p>2. Selecione <strong>"Adicionar à tela inicial"</strong> ou <strong>"Instalar aplicativo"</strong>.</p>
+                <p>3. O ícone do pintinho <strong>🐣 Bebê Fluente</strong> aparecerá na sua tela!</p>
+            </div>
+        </div>
+
+        <!-- Tela de Seleção de Idioma (Indovina l'Immagine!) -->
+        <div id="start-screen" class="hidden space-y-5">
+            <div class="flex justify-between items-center">
+                <button onclick="goCover()" title="Voltar para Capa" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded-xl border border-indigo-200 text-xs font-bold shadow-sm transition-all">
+                    ⬅️ Capa
+                </button>
+                <div class="text-4xl animate-bounce-slow">🌍🍕🐱🚀</div>
+                <div class="w-12"></div>
+            </div>
+            <h1 id="ui-title" class="text-3xl md:text-4xl font-game text-indigo-600 tracking-wide">
+                Indovina l'Immagine!
+            </h1>
+            <p id="ui-subtitle" class="text-lg text-gray-700 font-bold">
+                Leggi la parola e tocca l'immagine corretta!
+            </p>
+
+            <!-- Seleção de Idioma -->
+            <div class="bg-indigo-50/80 p-4 rounded-2xl border-2 border-indigo-200 space-y-2">
+                <label id="ui-lang-label" class="block text-xs font-bold text-indigo-500 uppercase tracking-wider">
+                    Scegli la lingua / Escolha o idioma:
+                </label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="setLanguage('it')" id="lang-btn-it" class="lang-btn py-2 px-3 rounded-xl border-2 font-bold text-sm flex items-center justify-center gap-2 bg-indigo-600 text-white border-indigo-700 shadow">
+                        🇮🇹 Italiano
+                    </button>
+                    <button onclick="setLanguage('en')" id="lang-btn-en" class="lang-btn py-2 px-3 rounded-xl border-2 font-bold text-sm flex items-center justify-center gap-2 bg-white text-gray-700 border-gray-300">
+                        🇺🇸 English
+                    </button>
+                    <button onclick="setLanguage('es')" id="lang-btn-es" class="lang-btn py-2 px-3 rounded-xl border-2 font-bold text-sm flex items-center justify-center gap-2 bg-white text-gray-700 border-gray-300">
+                        🇪🇸 Español
+                    </button>
+                    <button onclick="setLanguage('fr')" id="lang-btn-fr" class="lang-btn py-2 px-3 rounded-xl border-2 font-bold text-sm flex items-center justify-center gap-2 bg-white text-gray-700 border-gray-300">
+                        🇫🇷 Français
+                    </button>
+                </div>
+            </div>
+
+            <!-- Seleção de Modo / Categoria -->
+            <div class="bg-emerald-50/80 p-3.5 rounded-2xl border-2 border-emerald-200 space-y-2">
+                <label id="ui-cat-label" class="block text-xs font-bold text-emerald-600 uppercase tracking-wider">
+                    Scegli la categoria:
+                </label>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    <button onclick="setCategory('all')" id="cat-btn-all" class="cat-btn py-1.5 px-2 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-1 bg-emerald-600 text-white border-emerald-700 shadow">
+                        🌟 <span id="cat-txt-all">Generale</span>
+                    </button>
+                    <button onclick="setCategory('kitchen')" id="cat-btn-kitchen" class="cat-btn py-1.5 px-2 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-1 bg-white text-gray-700 border-gray-300">
+                        🍳 <span id="cat-txt-kitchen">Cucina</span>
+                    </button>
+                    <button onclick="setCategory('animals')" id="cat-btn-animals" class="cat-btn py-1.5 px-2 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-1 bg-white text-gray-700 border-gray-300">
+                        🦁 <span id="cat-txt-animals">Animali</span>
+                    </button>
+                    <button onclick="setCategory('sports')" id="cat-btn-sports" class="cat-btn py-1.5 px-2 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-1 bg-white text-gray-700 border-gray-300">
+                        ⚽ <span id="cat-txt-sports">Sport</span>
+                    </button>
+                    <button onclick="setCategory('vegetables')" id="cat-btn-vegetables" class="cat-btn py-1.5 px-2 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-1 bg-white text-gray-700 border-gray-300">
+                        🥦 <span id="cat-txt-vegetables">Verdure</span>
+                    </button>
+                    <button onclick="setCategory('transport')" id="cat-btn-transport" class="cat-btn py-1.5 px-2 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-1 bg-white text-gray-700 border-gray-300">
+                        🚗 <span id="cat-txt-transport">Trasporti</span>
+                    </button>
+                    <button onclick="setCategory('family')" id="cat-btn-family" class="cat-btn py-1.5 px-2 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-1 bg-white text-gray-700 border-gray-300">
+                        👨‍👩‍👧‍👦 <span id="cat-txt-family">Famiglia</span>
+                    </button>
+                    <button onclick="setCategory('others')" id="cat-btn-others" class="cat-btn py-1.5 px-2 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-1 bg-white text-gray-700 border-gray-300">
+                        🎈 <span id="cat-txt-others">Altro</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="ui-info-box" class="bg-amber-50 p-3 rounded-2xl border-2 border-amber-200 text-sm text-amber-900 font-semibold">
+                ⏱️ 10 parole per partita! Hai 20 secondi per ciascuna!
+            </div>
+            
+            <button onclick="startGame()" id="ui-start-btn" class="w-full py-4 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-game text-2xl rounded-2xl shadow-[0_6px_0_#d97706] active:translate-y-1 active:shadow-[0_2px_0_#d97706] transition-all">
+                GIOCA / INIZIA! 🚀
+            </button>
+        </div>
+
+        <!-- Tela do Jogo -->
+        <div id="play-screen" class="hidden space-y-4">
+            <!-- Cabeçalho: Voltar, Progresso, Pontos e Cronômetro -->
+            <div class="flex justify-between items-center bg-indigo-100 p-2.5 rounded-2xl font-bold text-indigo-900 gap-1.5">
+                <button onclick="goHome()" title="Voltar ao Início" class="bg-white hover:bg-indigo-50 text-indigo-600 p-2 rounded-xl border-2 border-indigo-200 text-lg shadow-sm active:scale-95 transition-all flex items-center justify-center">
+                    🏠
+                </button>
+                <span id="level-indicator" class="bg-indigo-500 text-white px-3 py-1 rounded-xl text-xs md:text-sm whitespace-nowrap">Parola 1/10</span>
+                <div class="flex items-center gap-1 text-red-500 text-base md:text-xl font-game">
+                    ⏰ <span id="timer-text">20</span>s
+                </div>
+                <span id="score-text" class="bg-yellow-400 text-yellow-950 px-3 py-1 rounded-xl text-xs md:text-sm font-game whitespace-nowrap">⭐ 0</span>
+            </div>
+
+            <!-- Barra de Tempo Visual -->
+            <div class="w-full bg-gray-200 h-3 rounded-full overflow-hidden">
+                <div id="timer-bar" class="bg-red-500 h-full w-full transition-all duration-1000 linear"></div>
+            </div>
+
+            <!-- Palavra a ser identificada -->
+            <div class="bg-indigo-50/80 rounded-3xl p-5 border-2 border-indigo-100 my-1">
+                <p id="ui-prompt" class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1">Qual è l'immagine di:</p>
+                <div class="flex items-center justify-center gap-3">
+                    <div id="word-target" class="text-3xl md:text-5xl font-game text-indigo-900 tracking-wider animate-pop uppercase break-words">
+                        PEPERONI
+                    </div>
+                    <button onclick="speakCurrentWord()" title="Ouvir palavra" class="bg-indigo-500 hover:bg-indigo-400 text-white p-3 rounded-2xl shadow-[0_4px_0_#3730a3] active:translate-y-1 active:shadow-[0_1px_0_#3730a3] transition-all text-2xl md:text-3xl flex-shrink-0">
+                        🔊
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grid com 4 Opções de Emojis/Imagens -->
+            <div id="images-container" class="grid grid-cols-2 gap-3 pt-1">
+                <!-- Botões gerados via JS -->
+            </div>
+        </div>
+
+        <!-- Tela Final / Resultado -->
+        <div id="end-screen" class="hidden space-y-5 animate-pop">
+            <div id="trophy-emoji" class="text-7xl">🏆</div>
+            <h2 id="end-title" class="text-3xl font-game text-indigo-600">Complimenti!</h2>
+            
+            <div class="bg-yellow-100 border-2 border-yellow-300 rounded-2xl p-4">
+                <p id="ui-final-score-label" class="text-gray-700 font-bold text-lg">Punteggio finale:</p>
+                <p id="final-score" class="text-4xl font-game text-yellow-700 mt-1">10 / 10</p>
+            </div>
+
+            <p id="end-message" class="text-gray-600 font-semibold">Hai riconosciuto benissimo tutte le parole!</p>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="startGame()" id="ui-restart-btn" class="w-full py-4 bg-green-500 hover:bg-green-400 text-white font-game text-2xl rounded-2xl shadow-[0_6px_0_#15803d] active:translate-y-1 active:shadow-[0_2px_0_#15803d] transition-all">
+                    GIOCA ANCORA 🔄
+                </button>
+                <button onclick="goHome()" id="ui-home-btn" class="w-full py-3 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 font-game text-xl rounded-2xl shadow-[0_4px_0_#a5b4fc] active:translate-y-1 active:shadow-[0_1px_0_#a5b4fc] transition-all flex items-center justify-center gap-2">
+                    🏠 TORNA ALL'INIZIO
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Configuração PWA: Manifesto Dinâmico + Ícone Pintinho (🐣) + Service Worker
+        (function setupPWA() {
+            const iconSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='110' fill='%234f46e5'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-size='320'%3E🐣%3C/text%3E%3C/svg%3E";
+            const manifest = {
+                name: "Bebê Fluente",
+                short_name: "Bebê Fluente",
+                description: "Jogo infantil educativo de idiomas - Desenvolvido por Ronaldo Paz",
+                start_url: window.location.href,
+                display: "standalone",
+                background_color: "#a1c4fd",
+                theme_color: "#4f46e5",
+                icons: [
+                    { src: iconSvg, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" },
+                    { src: iconSvg, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+                ]
+            };
+            const stringManifest = JSON.stringify(manifest);
+            const blob = new Blob([stringManifest], { type: 'application/manifest+json' });
+            const manifestURL = URL.createObjectURL(blob);
+            const link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = manifestURL;
+            document.head.appendChild(link);
+
+            if ('serviceWorker' in navigator) {
+                const swCode = `self.addEventListener('fetch', function(event) {});`;
+                const swBlob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(swBlob);
+                navigator.serviceWorker.register(swUrl).catch(() => {});
+            }
+        })();
+
+        let deferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
+        async function installPWA() {
+            playSound('click');
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    deferredPrompt = null;
+                }
+            } else {
+                document.getElementById('install-guide').classList.remove('hidden');
+            }
+        }
+
+        // Sistema Multi-Idioma para Interface
+        const uiTranslations = {
+            it: {
+                title: "Indovina l'Immagine!",
+                subtitle: "Leggi la parola e tocca l'immagine corretta!",
+                langLabel: "Scegli la lingua:",
+                catLabel: "Scegli la categoria:",
+                cats: {
+                    all: "Generale",
+                    kitchen: "Cucina",
+                    animals: "Animali",
+                    sports: "Sport",
+                    vegetables: "Verdure",
+                    transport: "Trasporti",
+                    family: "Famiglia",
+                    others: "Altro"
+                },
+                infoBox: "⏱️ 10 parole per partita! Hai 20 secondi per ciascuna!",
+                startBtn: "GIOCA / INIZIA! 🚀",
+                restartBtn: "GIOCA ANCORA 🔄",
+                homeBtn: "🏠 TORNA ALL'INIZIO",
+                prompt: "Qual è l'immagine di:",
+                wordIndicator: "Parola",
+                finalScoreLabel: "Punteggio finale:",
+                winTitle: "Incredibile! Voto 10!",
+                winMsg: "Hai indovinato tutte le 10 immagini!",
+                goodTitle: "Molto Bene!",
+                goodMsg: "Hai fatto un ottimo lavoro!",
+                tryTitle: "Buon Tentativo!",
+                tryMsg: "Ci sei quasi! Vuoi riprovare?"
+            },
+            en: {
+                title: "Guess the Picture!",
+                subtitle: "Read the word and tap the correct picture!",
+                langLabel: "Choose Language:",
+                catLabel: "Choose Category:",
+                cats: {
+                    all: "General",
+                    kitchen: "Kitchen",
+                    animals: "Animals",
+                    sports: "Sports",
+                    vegetables: "Vegetables",
+                    transport: "Transport",
+                    family: "Family",
+                    others: "Others"
+                },
+                infoBox: "⏱️ 10 words per game! 20 seconds each!",
+                startBtn: "PLAY NOW! 🚀",
+                restartBtn: "PLAY AGAIN 🔄",
+                homeBtn: "🏠 BACK TO HOME",
+                prompt: "Which picture is:",
+                wordIndicator: "Word",
+                finalScoreLabel: "Final Score:",
+                winTitle: "Amazing! Perfect Score!",
+                winMsg: "You got all 10 pictures right!",
+                goodTitle: "Great Job!",
+                goodMsg: "You did really well!",
+                tryTitle: "Good Effort!",
+                tryMsg: "Almost there! Practice again?"
+            },
+            es: {
+                title: "¡Adivina la Imagen!",
+                subtitle: "¡Lee la palabra y toca la imagen correcta!",
+                langLabel: "Elige el idioma:",
+                catLabel: "Elige la categoría:",
+                cats: {
+                    all: "General",
+                    kitchen: "Cocina",
+                    animals: "Animales",
+                    sports: "Deportes",
+                    vegetables: "Vegetales",
+                    transport: "Transportes",
+                    family: "Familia",
+                    others: "Otros"
+                },
+                infoBox: "⏱️ ¡10 palabras por partida! ¡20 segundos por cada una!",
+                startBtn: "¡JUGAR AHORA! 🚀",
+                restartBtn: "JUGAR DE NUEVO 🔄",
+                homeBtn: "🏠 VOLVER AL INICIO",
+                prompt: "¿Cuál es la imagen de:",
+                wordIndicator: "Palabra",
+                finalScoreLabel: "Puntuación final:",
+                winTitle: "¡Increíble! ¡Puntuación Perfecta!",
+                winMsg: "¡Has acertado las 10 imágenes!",
+                goodTitle: "¡Muy Bien!",
+                goodMsg: "¡Has hecho un gran trabajo!",
+                tryTitle: "¡Buen Intento!",
+                tryMsg: "¡Casi lo consigues! ¿Reintentar?"
+            },
+            fr: {
+                title: "Devine l'Image !",
+                subtitle: "Lis le mot et touche la bonne image !",
+                langLabel: "Choisissez la langue :",
+                catLabel: "Choisissez la catégorie :",
+                cats: {
+                    all: "Général",
+                    kitchen: "Cuisine",
+                    animals: "Animaux",
+                    sports: "Sports",
+                    vegetables: "Légumes",
+                    transport: "Transports",
+                    family: "Famille",
+                    others: "Autres"
+                },
+                infoBox: "⏱️ 10 mots par partie ! 20 secondes par mot !",
+                startBtn: "JOUER ! 🚀",
+                restartBtn: "REJOUER 🔄",
+                homeBtn: "🏠 RETOUR À L'ACCUEIL",
+                prompt: "Quelle est l'image de:",
+                wordIndicator: "Mot",
+                finalScoreLabel: "Score final :",
+                winTitle: "Incroyable ! Score Parfait !",
+                winMsg: "Tu as trouvé les 10 images !",
+                goodTitle: "Très Bien !",
+                goodMsg: "Tu as fait du super travail !",
+                tryTitle: "Bon Effort !",
+                tryMsg: "Presque parfait ! On rejoue ?"
+            }
+        };
+
+        let currentLang = 'it';
+        let currentCategory = 'all';
+
+        // BANCO DE DADOS CATEGORIZADO: Cozinha, Animais, Esportes, Vegetais, Transportes, Família e Outros
+        const dictionary = [
+            // Vegetais (vegetables)
+            { cat: "vegetables", emoji: "🫑", it: "PEPERONI", en: "BELL PEPPER", es: "PIMIENTO", fr: "POIVRON" },
+            { cat: "vegetables", emoji: "🍅", it: "POMODORO", en: "TOMATO", es: "TOMATE", fr: "TOMATE" },
+            { cat: "vegetables", emoji: "🌽", it: "MAIS", en: "CORN", es: "MAÍZ", fr: "MAÏS" },
+            { cat: "vegetables", emoji: "🥬", it: "LATTUGA", en: "LETTUCE", es: "LECHUGA", fr: "LAITUE" },
+            { cat: "vegetables", emoji: "🥕", it: "CAROTA", en: "CARROT", es: "ZANAHORIA", fr: "CAROTTE" },
+            { cat: "vegetables", emoji: "🍆", it: "MELANZANA", en: "EGGPLANT", es: "BERENJENA", fr: "AUBERGINE" },
+            { cat: "vegetables", emoji: "🧅", it: "CIPOLLA", en: "ONION", es: "CEBOLLA", fr: "OIGNON" },
+            { cat: "vegetables", emoji: "🧄", it: "AGLIO", en: "GARLIC", es: "AJO", fr: "AIL" },
+            { cat: "vegetables", emoji: "🥦", it: "BROCCOLO", en: "BROCCOLI", es: "BRÓCOLI", fr: "BROCOLI" },
+            { cat: "vegetables", emoji: "🥒", it: "CETRIOLO", en: "CUCUMBER", es: "PEPINO", fr: "CONCOMBRE" },
+            { cat: "vegetables", emoji: "🥔", it: "PATATA", en: "POTATO", es: "PATATA", fr: "POMME DE TERRE" },
+            { cat: "vegetables", emoji: "🍄", it: "FUNGO", en: "MUSHROOM", es: "SETA", fr: "CHAMPIGNON" },
+            { cat: "vegetables", emoji: "🥑", it: "AVOCADO", en: "AVOCADO", es: "AGUACATE", fr: "AVOCAT" },
+            { cat: "vegetables", emoji: "🌶️", it: "PEPERONCINO", en: "CHILI PEPPER", es: "CHILE", fr: "PIMENT" },
+            { cat: "vegetables", emoji: "🫒", it: "OLIVA", en: "OLIVE", es: "ACEITUNA", fr: "OLIVE" },
+            { cat: "vegetables", emoji: "🍠", it: "PATATA DOLCE", en: "SWEET POTATO", es: "BATATA", fr: "PATATE DOUCE" },
+
+            // Cozinha / Alimentos & Utensílios (kitchen)
+            { cat: "kitchen", emoji: "🧀", it: "FORMAGGIO", en: "CHEESE", es: "QUESO", fr: "FROMAGE" },
+            { cat: "kitchen", emoji: "🍞", it: "PANE", en: "BREAD", es: "PAN", fr: "PAIN" },
+            { cat: "kitchen", emoji: "🍎", it: "MELA", en: "APPLE", es: "MANZANA", fr: "POMME" },
+            { cat: "kitchen", emoji: "🍌", it: "BANANA", en: "BANANA", es: "PLÁTANO", fr: "BANANE" },
+            { cat: "kitchen", emoji: "🍊", it: "ARANCIA", en: "ORANGE", es: "NARANJA", fr: "ORANGE" },
+            { cat: "kitchen", emoji: "🍋", it: "LIMONE", en: "LEMON", es: "LIMÓN", fr: "CITRON" },
+            { cat: "kitchen", emoji: "🍇", it: "UVA", en: "GRAPES", es: "UVA", fr: "RAISIN" },
+            { cat: "kitchen", emoji: "🍓", it: "FRAGOLA", en: "STRAWBERRY", es: "FRESA", fr: "FRAISE" },
+            { cat: "kitchen", emoji: "🍉", it: "ANGURIA", en: "WATERMELON", es: "SANDÍA", fr: "PASTÈQUE" },
+            { cat: "kitchen", emoji: "🍍", it: "ANANAS", en: "PINEAPPLE", es: "PIÑA", fr: "ANANAS" },
+            { cat: "kitchen", emoji: "🍕", it: "PIZZA", en: "PIZZA", es: "PIZZA", fr: "PIZZA" },
+            { cat: "kitchen", emoji: "🍔", it: "HAMBURGER", en: "BURGER", es: "HAMBURGUESA", fr: "HAMBURGER" },
+            { cat: "kitchen", emoji: "🍳", it: "UOVO", en: "EGG", es: "HUEVO", fr: "ŒUF" },
+            { cat: "kitchen", emoji: "🍦", it: "GELATO", en: "ICE CREAM", es: "HELADO", fr: "GLACE" },
+            { cat: "kitchen", emoji: "🥐", it: "CORNETTO", en: "CROISSANT", es: "CRUASÁN", fr: "CROISSANT" },
+            { cat: "kitchen", emoji: "🥄", it: "CUCCHIAIO", en: "SPOON", es: "CUCHARA", fr: "CUILLÈRE" },
+            { cat: "kitchen", emoji: "🍴", it: "FORCHETTA E COLTELLO", en: "FORK AND KNIFE", es: "TENEDOR Y CUCHILLO", fr: "FOURCHETTE ET COUTEAU" },
+            { cat: "kitchen", emoji: "🍽️", it: "PIATTO", en: "PLATE", es: "PLATO", fr: "ASSIETTE" },
+            { cat: "kitchen", emoji: "🥣", it: "CIOTOLA", en: "BOWL", es: "CUENCO", fr: "BOL" },
+            { cat: "kitchen", emoji: "🥛", it: "BICCHIERE DI LATTE", en: "GLASS OF MILK", es: "VASO DE LECHE", fr: "VERRE DE LAIT" },
+            { cat: "kitchen", emoji: "☕", it: "TAZZA", en: "CUP", es: "TAZA", fr: "TASSE" },
+            { cat: "kitchen", emoji: "🫖", it: "TEIERA", en: "TEAPOT", es: "TETERA", fr: "THÉIÈRE" },
+            { cat: "kitchen", emoji: "🧂", it: "SALE", en: "SALT", es: "SAL", fr: "SEL" },
+
+            // Animais (animals)
+            { cat: "animals", emoji: "🐶", it: "CANE", en: "DOG", es: "PERRO", fr: "CHIEN" },
+            { cat: "animals", emoji: "🐱", it: "GATTO", en: "CAT", es: "GATO", fr: "CHAT" },
+            { cat: "animals", emoji: "🐭", it: "TOPO", en: "MOUSE", es: "RATÓN", fr: "SOURIS" },
+            { cat: "animals", emoji: "🐰", it: "CONIGLIO", en: "RABBIT", es: "CONEJO", fr: "LAPIN" },
+            { cat: "animals", emoji: "🦊", it: "VOLPE", en: "FOX", es: "ZORRO", fr: "RENARD" },
+            { cat: "animals", emoji: "🐻", it: "ORSO", en: "BEAR", es: "OSO", fr: "OURS" },
+            { cat: "animals", emoji: "🐼", it: "PANDA", en: "PANDA", es: "PANDA", fr: "PANDA" },
+            { cat: "animals", emoji: "🦁", it: "LEONE", en: "LION", es: "LEÓN", fr: "LION" },
+            { cat: "animals", emoji: "🐯", it: "TIGRE", en: "TIGER", es: "TIGRE", fr: "TIGRE" },
+            { cat: "animals", emoji: "🐮", it: "MUCCA", en: "COW", es: "VACA", fr: "VACHE" },
+            { cat: "animals", emoji: "🐷", it: "MAIALE", en: "PIG", es: "CERDO", fr: "COCHON" },
+            { cat: "animals", emoji: "🐸", it: "RANA", en: "FROG", es: "RANA", fr: "GRENOUILLE" },
+            { cat: "animals", emoji: "🐵", it: "SCIMMIA", en: "MONKEY", es: "MONO", fr: "SINGE" },
+            { cat: "animals", emoji: "🐔", it: "GALLINA", en: "CHICKEN", es: "GALLINA", fr: "POULE" },
+            { cat: "animals", emoji: "🐧", it: "PINGUINO", en: "PENGUIN", es: "PINGÜINO", fr: "MANCHOT" },
+            { cat: "animals", emoji: "🦆", it: "ANATRA", en: "DUCK", es: "PATO", fr: "CANARD" },
+            { cat: "animals", emoji: "🦉", it: "GUFO", en: "OWL", es: "BÚHO", fr: "HIBOU" },
+            { cat: "animals", emoji: "🐴", it: "CAVALLO", en: "HORSE", es: "CABALLO", fr: "CHEVAL" },
+            { cat: "animals", emoji: "🐝", it: "APE", en: "BEE", es: "ABEJA", fr: "ABEILLE" },
+            { cat: "animals", emoji: "🦋", it: "FARFALLA", en: "BUTTERFLY", es: "MARIPOSA", fr: "PAPILLON" },
+            { cat: "animals", emoji: "🐬", it: "DELFINO", en: "DOLPHIN", es: "DELFÍN", fr: "DAUPHIN" },
+            { cat: "animals", emoji: "🐢", it: "TARTARUGA", en: "TURTLE", es: "TORTUGA", fr: "TORTUE" },
+            { cat: "animals", emoji: "🐘", it: "ELEFANTE", en: "ELEPHANT", es: "ELEFANTE", fr: "ÉLÉPHANT" },
+            { cat: "animals", emoji: "🦒", it: "GIRAFFA", en: "GIRAFFE", es: "JIRAFA", fr: "GIRAFE" },
+
+            // Esportes (sports)
+            { cat: "sports", emoji: "⚽", it: "CALCIO", en: "SOCCER", es: "FÚTBOL", fr: "FOOTBALL" },
+            { cat: "sports", emoji: "🏀", it: "BASKET", en: "BASKETBALL", es: "BALONCESTO", fr: "BASKETBALL" },
+            { cat: "sports", emoji: "🏈", it: "FOOTBALL AMERICANO", en: "FOOTBALL", es: "FÚTBOL AMERICANO", fr: "FOOTBALL AMÉRICAIN" },
+            { cat: "sports", emoji: "⚾", it: "BASEBALL", en: "BASEBALL", es: "BÉISBOL", fr: "BASEBALL" },
+            { cat: "sports", emoji: "🎾", it: "TENNIS", en: "TENNIS", es: "TENIS", fr: "TENNIS" },
+            { cat: "sports", emoji: "🏐", it: "PALLAVOLO", en: "VOLLEYBALL", es: "VOLEIBOL", fr: "VOLLEY-BALL" },
+            { cat: "sports", emoji: "🏉", it: "RUGBY", en: "RUGBY", es: "RUGBY", fr: "RUGBY" },
+            { cat: "sports", emoji: "🏓", it: "PING PONG", en: "PING PONG", es: "PING PONG", fr: "PING-PONG" },
+            { cat: "sports", emoji: "🏸", it: "BADMINTON", en: "BADMINTON", es: "BÁDMINTON", fr: "BADMINTON" },
+            { cat: "sports", emoji: "🥊", it: "PUGILATO", en: "BOXING", es: "BOXEO", fr: "BOXE" },
+            { cat: "sports", emoji: "🥋", it: "KARATE", en: "KARATE", es: "KARATE", fr: "KARATÉ" },
+            { cat: "sports", emoji: "🏊", it: "NUOTO", en: "SWIMMING", es: "NATACIÓN", fr: "NATATION" },
+            { cat: "sports", emoji: "🚴", it: "CICLISMO", en: "CYCLING", es: "CICLISMO", fr: "CYCLISME" },
+            { cat: "sports", emoji: "🏄", it: "SURF", en: "SURFING", es: "SURF", fr: "SURF" },
+            { cat: "sports", emoji: "⛷️", it: "SCI", en: "SKIING", es: "ESQUÍ", fr: "SKI" },
+            { cat: "sports", emoji: "🛹", it: "SKATEBOARD", en: "SKATEBOARD", es: "MONOPATÍN", fr: "SKATEBOARD" },
+            { cat: "sports", emoji: "⛳", it: "GOLF", en: "GOLF", es: "GOLF", fr: "GOLF" },
+            { cat: "sports", emoji: "🏹", it: "TIRO CON L'ARCO", en: "ARCHERY", es: "TIRO CON ARCO", fr: "TIR À L'ARC" },
+            { cat: "sports", emoji: "🏆", it: "TROFEO", en: "TROPHY", es: "TROFEO", fr: "TROPHÉE" },
+            { cat: "sports", emoji: "🏅", it: "MEDAGLIA", en: "MEDAL", es: "MEDALLA", fr: "MÉDAILLE" },
+
+            // Transportes (transport)
+            { cat: "transport", emoji: "🚗", it: "MACCHINA", en: "CAR", es: "COCHE", fr: "VOITURE" },
+            { cat: "transport", emoji: "🚌", it: "AUTOBUS", en: "BUS", es: "AUTOBÚS", fr: "BUS" },
+            { cat: "transport", emoji: "🏎️", it: "AUTO DA CORSA", en: "RACE CAR", es: "COCHE DE CARRERAS", fr: "VOITURE DE COURSE" },
+            { cat: "transport", emoji: "🚓", it: "POLIZIA", en: "POLICE CAR", es: "POLICÍA", fr: "POLICE" },
+            { cat: "transport", emoji: "🚑", it: "AMBULANZA", en: "AMBULANCE", es: "AMBULANCIA", fr: "AMBULANCE" },
+            { cat: "transport", emoji: "🚒", it: "VIGILI DEL FUOCO", en: "FIRE TRUCK", es: "CAMIÓN DE BOMBEROS", fr: "CAMION DE POMPIERS" },
+            { cat: "transport", emoji: "🚚", it: "CAMION", en: "TRUCK", es: "CAMIÓN", fr: "CAMION" },
+            { cat: "transport", emoji: "🚜", it: "TRATTORE", en: "TRACTOR", es: "TRACTOR", fr: "TRACTEUR" },
+            { cat: "transport", emoji: "🚲", it: "BICICLETTA", en: "BICYCLE", es: "BICICLETA", fr: "VÉLO" },
+            { cat: "transport", emoji: "🛵", it: "SCOOTER", en: "SCOOTER", es: "MOTOCICLETA", fr: "SCOOTER" },
+            { cat: "transport", emoji: "🏍️", it: "MOTO", en: "MOTORCYCLE", es: "MOTO", fr: "MOTO" },
+            { cat: "transport", emoji: "✈️", it: "AEREO", en: "AIRPLANE", es: "AVIÓN", fr: "AVION" },
+            { cat: "transport", emoji: "🚀", it: "RAZZO", en: "ROCKET", es: "COHETE", fr: "FUSÉE" },
+            { cat: "transport", emoji: "🚁", it: "ELICOTTERO", en: "HELICOPTER", es: "HELICÓPTERO", fr: "HÉLICOPTÈRE" },
+            { cat: "transport", emoji: "⛵", it: "BARCA", en: "BOAT", es: "BARCO", fr: "BATEAU" },
+            { cat: "transport", emoji: "🚢", it: "NAVE", en: "SHIP", es: "BUQUE", fr: "NAVIRE" },
+            { cat: "transport", emoji: "🚂", it: "TRENO", en: "TRAIN", es: "TREN", fr: "TRAIN" },
+            { cat: "transport", emoji: "🚇", it: "METROPOLITANA", en: "SUBWAY", es: "METRO", fr: "MÉTRO" },
+
+            // Família (family)
+            { cat: "family", emoji: "👶", it: "BEBE", en: "BABY", es: "BEBÉ", fr: "BÉBÉ" },
+            { cat: "family", emoji: "👦", it: "BAMBINO", en: "BOY", es: "NIÑO", fr: "GARÇON" },
+            { cat: "family", emoji: "👧", it: "BAMBINA", en: "GIRL", es: "NIÑA", fr: "FILLE" },
+            { cat: "family", emoji: "👨", it: "PAPÀ", en: "DAD", es: "PAPÁ", fr: "PAPA" },
+            { cat: "family", emoji: "👩", it: "MAMMA", en: "MOM", es: "MAMÁ", fr: "MAMAN" },
+            { cat: "family", emoji: "👴", it: "NONNO", en: "GRANDPA", es: "ABUELO", fr: "GRAND-PÈRE" },
+            { cat: "family", emoji: "👵", it: "NONNA", en: "GRANDMA", es: "ABUELA", fr: "GRAND-MÈRE" },
+            { cat: "family", emoji: "👨‍👩‍👧‍👦", it: "FAMIGLIA", en: "FAMILY", es: "FAMILIA", fr: "FAMILLE" },
+            { cat: "family", emoji: "🤰", it: "MAMMA INCINTA", en: "PREGNANT MOM", es: "EMBARAZADA", fr: "ENCEINTE" },
+            { cat: "family", emoji: "🤱", it: "MAMMA E BEBÈ", en: "MOTHER AND BABY", es: "MADRE Y BEBÉ", fr: "MÈRE ET BÉBÉ" },
+            { cat: "family", emoji: "🧑‍🤝‍🧑", it: "FRATELLI", en: "SIBLINGS", es: "HERMANOS", fr: "FRÈRES ET SŒURS" },
+            { cat: "family", emoji: "🏠", it: "CASA", en: "HOME", es: "HOGAR", fr: "MAISON" },
+            { cat: "family", emoji: "❤️", it: "AMORE", en: "LOVE", es: "AMOR", fr: "AMOUR" },
+            { cat: "family", emoji: "🧸", it: "ORSACCHIOTTO", en: "TEDDY BEAR", es: "OSITO", fr: "OURS EN PELUCHE" },
+            { cat: "family", emoji: "🍼", it: "BIBERON", en: "BABY BOTTLE", es: "BIBERÓN", fr: "BIBERON" },
+
+            // Outros (others - Natureza, Objetos, Música, etc.)
+            { cat: "others", emoji: "☀️", it: "SOLE", en: "SUN", es: "SOL", fr: "SOLEIL" },
+            { cat: "others", emoji: "🌙", it: "LUNA", en: "MOON", es: "LUNA", fr: "LUNE" },
+            { cat: "others", emoji: "⭐", it: "STELLA", en: "STAR", es: "ESTRELLA", fr: "ÉTOILE" },
+            { cat: "others", emoji: "🌈", it: "ARCOBALENO", en: "RAINBOW", es: "ARCOÍRIS", fr: "ARC-EN-CIEL" },
+            { cat: "others", emoji: "🔥", it: "FUOCO", en: "FIRE", es: "FUEGO", fr: "FEU" },
+            { cat: "others", emoji: "🌳", it: "ALBERO", en: "TREE", es: "ÁRBOL", fr: "ARBRE" },
+            { cat: "others", emoji: "🌻", it: "GIRASOLE", en: "SUNFLOWER", es: "GIRASOL", fr: "TOURNESOL" },
+            { cat: "others", emoji: "🎸", it: "CHITARRA", en: "GUITAR", es: "GUITARRA", fr: "GUITARE" },
+            { cat: "others", emoji: "🎹", it: "PIANOFORTE", en: "PIANO", es: "PIANO", fr: "PIANO" },
+            { cat: "others", emoji: "🥁", it: "TAMBURO", en: "DRUM", es: "TAMBOR", fr: "TAMBOUR" },
+            { cat: "others", emoji: "🎨", it: "PITTURA", en: "PAINT", es: "PINTURA", fr: "PEINTURE" },
+            { cat: "others", emoji: "👑", it: "CORONA", en: "CROWN", es: "CORONA", fr: "COURONNE" },
+            { cat: "others", emoji: "💎", it: "DIAMANTE", en: "DIAMOND", es: "DIAMANTE", fr: "DIAMANT" },
+            { cat: "others", emoji: "🎁", it: "REGALO", en: "GIFT", es: "REGALO", fr: "CADEAU" },
+            { cat: "others", emoji: "🎈", it: "PALLONCINO", en: "BALLOON", es: "GLOBO", fr: "BALLON" },
+            { cat: "others", emoji: "🔔", it: "CAMPANA", en: "BELL", es: "CAMPANA", fr: "CLOCHE" },
+            { cat: "others", emoji: "🔑", it: "CHIAVE", en: "KEY", es: "LLAVE", fr: "CLÉ" },
+            { cat: "others", emoji: "📱", it: "TELEFONO", en: "PHONE", es: "TELÉFONO", fr: "TÉLÉPHONE" },
+            { cat: "others", emoji: "💻", it: "COMPUTER", en: "LAPTOP", es: "ORDENADOR", fr: "ORDINATEUR" },
+            { cat: "others", emoji: "⏰", it: "SVEGLIA", en: "CLOCK", es: "RELOJ", fr: "HORLOGE" },
+            { cat: "others", emoji: "📚", it: "LIBRI", en: "BOOKS", es: "LIBROS", fr: "LIVRES" },
+            { cat: "others", emoji: "✏️", it: "MATITA", en: "PENCIL", es: "LÁPIZ", fr: "CRAYON" },
+            { cat: "others", emoji: "🕶️", it: "OCCHIALI DA SOLE", en: "SUNGLASSES", es: "GAFAS DE SOL", fr: "LUNETTES DE SOLEIL" },
+            { cat: "others", emoji: "👟", it: "SCARPA", en: "SHOE", es: "ZAPATO", fr: "CHAUSSURE" },
+            { cat: "others", emoji: "🏰", it: "CASTELLO", en: "CASTLE", es: "CASTILLO", fr: "CHÂTEAU" },
+            { cat: "others", emoji: "🎒", it: "ZAINO", en: "BACKPACK", es: "MOCHILA", fr: "SAC À DOS" }
+        ];
+
+        let currentQuestions = [];
+        let currentIndex = 0;
+        let score = 0;
+        let timeLeft = 20;
+        let timerInterval = null;
+        let nextQuestionTimeout = null;
+        let audioInitialized = false;
+
+        // Entrar na tela de seleção de idioma ("Indovina l'Immagine!")
+        function enterLanguageScreen() {
+            playSound('click');
+            document.getElementById('cover-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+            document.getElementById('start-screen').classList.add('animate-pop');
+        }
+
+        // Voltar para a Capa Principal ("Bebê Fluente")
+        function goCover() {
+            playSound('click');
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            clearInterval(timerInterval);
+            clearTimeout(nextQuestionTimeout);
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('play-screen').classList.add('hidden');
+            document.getElementById('end-screen').classList.add('hidden');
+            document.getElementById('cover-screen').classList.remove('hidden');
+        }
+
+        // Voltar à Tela de Idiomas / Início do Jogo
+        function goHome() {
+            playSound('click');
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            clearInterval(timerInterval);
+            clearTimeout(nextQuestionTimeout);
+            document.getElementById('cover-screen').classList.add('hidden');
+            document.getElementById('play-screen').classList.add('hidden');
+            document.getElementById('end-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+        }
+
+        // Pronunciar a palavra no idioma escolhido
+        const speechLangMap = {
+            it: 'it-IT',
+            en: 'en-US',
+            es: 'es-ES',
+            fr: 'fr-FR'
+        };
+
+        function speakWord(text) {
+            if (!('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text.toLowerCase());
+                utterance.lang = speechLangMap[currentLang] || 'it-IT';
+                utterance.rate = 0.85; // Ritmo levemente mais pausado e claro para crianças
+                utterance.pitch = 1.1; // Tom amigável
+                window.speechSynthesis.speak(utterance);
+            } catch (e) {
+                console.log("Speech synthesis error:", e);
+            }
+        }
+
+        function speakCurrentWord() {
+            if (currentQuestions[currentIndex]) {
+                speakWord(currentQuestions[currentIndex].word);
+            }
+        }
+
+        // Configuração de sons simples com Tone.js
+        const synth = new Tone.Synth().toDestination();
+        
+        function playSound(type) {
+            try {
+                if (!audioInitialized) {
+                    Tone.start();
+                    audioInitialized = true;
+                }
+                if (type === 'correct') {
+                    synth.triggerAttackRelease("C5", "8n", Tone.now());
+                    synth.triggerAttackRelease("E5", "8n", Tone.now() + 0.1);
+                    synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
+                } else if (type === 'wrong') {
+                    synth.triggerAttackRelease("C3", "8n", Tone.now());
+                    synth.triggerAttackRelease("A2", "8n", Tone.now() + 0.15);
+                } else if (type === 'click') {
+                    synth.triggerAttackRelease("G4", "16n", Tone.now());
+                } else if (type === 'win') {
+                    synth.triggerAttackRelease("C4", "8n", Tone.now());
+                    synth.triggerAttackRelease("E4", "8n", Tone.now() + 0.1);
+                    synth.triggerAttackRelease("G4", "8n", Tone.now() + 0.2);
+                    synth.triggerAttackRelease("C5", "4n", Tone.now() + 0.3);
+                }
+            } catch (e) {
+                console.log("Audio play error");
+            }
+        }
+
+        // Mudar Idioma
+        function setLanguage(lang) {
+            playSound('click');
+            currentLang = lang;
+            
+            // Atualizar botões de idioma
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.className = "lang-btn py-2 px-3 rounded-xl border-2 font-bold text-sm flex items-center justify-center gap-2 bg-white text-gray-700 border-gray-300";
+            });
+            const activeBtn = document.getElementById(`lang-btn-${lang}`);
+            if (activeBtn) {
+                activeBtn.className = "lang-btn py-2 px-3 rounded-xl border-2 font-bold text-sm flex items-center justify-center gap-2 bg-indigo-600 text-white border-indigo-700 shadow";
+            }
+
+            // Atualizar Textos da Interface
+            const ui = uiTranslations[lang];
+            document.getElementById('ui-title').textContent = ui.title;
+            document.getElementById('ui-subtitle').textContent = ui.subtitle;
+            document.getElementById('ui-lang-label').textContent = ui.langLabel;
+            document.getElementById('ui-cat-label').textContent = ui.catLabel;
+            document.getElementById('ui-info-box').textContent = ui.infoBox;
+            document.getElementById('ui-start-btn').textContent = ui.startBtn;
+            document.getElementById('ui-restart-btn').textContent = ui.restartBtn;
+            document.getElementById('ui-home-btn').textContent = ui.homeBtn;
+            document.getElementById('ui-prompt').textContent = ui.prompt;
+            document.getElementById('ui-final-score-label').textContent = ui.finalScoreLabel;
+
+            // Atualizar nomes das categorias no idioma selecionado
+            Object.keys(ui.cats).forEach(catKey => {
+                const spanEl = document.getElementById(`cat-txt-${catKey}`);
+                if (spanEl) spanEl.textContent = ui.cats[catKey];
+            });
+        }
+
+        // Mudar Categoria / Modo
+        function setCategory(cat) {
+            playSound('click');
+            currentCategory = cat;
+
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = "cat-btn py-1.5 px-2 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-1 bg-white text-gray-700 border-gray-300";
+            });
+            const activeCat = document.getElementById(`cat-btn-${cat}`);
+            if (activeCat) {
+                activeCat.className = "cat-btn py-1.5 px-2 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-1 bg-emerald-600 text-white border-emerald-700 shadow";
+            }
+        }
+
+        // Embaralhar array
+        function shuffle(array) {
+            return array.sort(() => Math.random() - 0.5);
+        }
+
+        // Iniciar / Reiniciar Jogo
+        function startGame() {
+            playSound('click');
+            
+            // Filtra pela categoria selecionada (ou usa todas se 'all')
+            const pool = currentCategory === 'all' 
+                ? [...dictionary] 
+                : dictionary.filter(item => item.cat === currentCategory);
+
+            const shuffledDict = shuffle(pool);
+            currentQuestions = [];
+
+            for (let i = 0; i < 10 && i < shuffledDict.length; i++) {
+                const item = shuffledDict[i];
+                const word = item[currentLang];
+                const correctEmoji = item.emoji;
+
+                // Prioriza distratores da mesma categoria para ficar ainda mais educativo!
+                let sameCatEmojis = pool.filter(d => d.emoji !== correctEmoji).map(d => d.emoji);
+                if (sameCatEmojis.length < 3) {
+                    sameCatEmojis = dictionary.filter(d => d.emoji !== correctEmoji).map(d => d.emoji);
+                }
+                const distractors = shuffle(sameCatEmojis).slice(0, 3);
+
+                currentQuestions.push({
+                    word: word,
+                    correctEmoji: correctEmoji,
+                    distractors: distractors
+                });
+            }
+
+            currentIndex = 0;
+            score = 0;
+
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('end-screen').classList.add('hidden');
+            document.getElementById('play-screen').classList.remove('hidden');
+
+            loadQuestion();
+        }
+
+        // Carregar pergunta/palavra atual
+        function loadQuestion() {
+            clearInterval(timerInterval);
+            
+            if (currentIndex >= currentQuestions.length) {
+                endGame();
+                return;
+            }
+
+            const q = currentQuestions[currentIndex];
+            const ui = uiTranslations[currentLang];
+
+            // Atualizar Indicadores UI
+            document.getElementById('level-indicator').textContent = `${ui.wordIndicator} ${currentIndex + 1}/10`;
+            document.getElementById('score-text').textContent = `⭐ ${score}`;
+            
+            // Palavra Alvo
+            const wordEl = document.getElementById('word-target');
+            wordEl.textContent = q.word;
+            wordEl.classList.remove('animate-pop');
+            void wordEl.offsetWidth; // Trigger reflow
+            wordEl.classList.add('animate-pop');
+
+            // Falar a palavra automaticamente ao carregar
+            speakWord(q.word);
+
+            // Gerar 4 opções de imagens (1 correta + 3 distratores)
+            const options = shuffle([q.correctEmoji, ...q.distractors]);
+            
+            const container = document.getElementById('images-container');
+            container.innerHTML = '';
+            
+            options.forEach(emoji => {
+                const btn = document.createElement('button');
+                btn.className = "btn-syllable bg-blue-50 hover:bg-blue-100 border-4 border-blue-200 text-6xl md:text-7xl p-4 rounded-3xl flex justify-center items-center active:scale-95 transition-all shadow-md hover:border-blue-400";
+                btn.textContent = emoji;
+                btn.onclick = () => checkAnswer(emoji, btn, q.correctEmoji);
+                container.appendChild(btn);
+            });
+
+            // Reiniciar Temporizador de 20s
+            startTimer();
+        }
+
+        // Timer de 20 segundos
+        function startTimer() {
+            timeLeft = 20;
+            updateTimerUI();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerUI();
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    playSound('wrong');
+                    highlightCorrectAnswer(currentQuestions[currentIndex].correctEmoji);
+                    nextQuestionTimeout = setTimeout(() => {
+                        currentIndex++;
+                        loadQuestion();
+                    }, 1500);
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            document.getElementById('timer-text').textContent = timeLeft;
+            const percentage = (timeLeft / 20) * 100;
+            const timerBar = document.getElementById('timer-bar');
+            timerBar.style.width = `${percentage}%`;
+            
+            if (timeLeft <= 5) {
+                timerBar.className = "bg-red-600 h-full transition-all duration-1000 linear animate-pulse";
+            } else {
+                timerBar.className = "bg-red-500 h-full transition-all duration-1000 linear";
+            }
+        }
+
+        // Checar resposta escolhida
+        function checkAnswer(selectedEmoji, buttonEl, correctEmoji) {
+            clearInterval(timerInterval);
+            
+            // Desativar todos os botões temporariamente
+            const buttons = document.querySelectorAll('#images-container button');
+            buttons.forEach(b => b.disabled = true);
+
+            if (selectedEmoji === correctEmoji) {
+                // Resposta Correta
+                playSound('correct');
+                score++;
+                buttonEl.className = "btn-syllable bg-green-100 border-4 border-green-500 text-6xl md:text-7xl p-4 rounded-3xl flex justify-center items-center shadow-lg animate-pop";
+            } else {
+                // Resposta Errada
+                playSound('wrong');
+                buttonEl.className = "btn-syllable bg-red-100 border-4 border-red-500 text-6xl md:text-7xl p-4 rounded-3xl flex justify-center items-center opacity-70";
+                highlightCorrectAnswer(correctEmoji);
+            }
+
+            document.getElementById('score-text').textContent = `⭐ ${score}`;
+
+            // Avança para a próxima palavra após 1.5s
+            nextQuestionTimeout = setTimeout(() => {
+                currentIndex++;
+                loadQuestion();
+            }, 1500);
+        }
+
+        // Destacar a imagem certa em caso de erro ou tempo esgotado
+        function highlightCorrectAnswer(correctEmoji) {
+            const buttons = document.querySelectorAll('#images-container button');
+            buttons.forEach(b => {
+                if (b.textContent === correctEmoji) {
+                    b.className = "btn-syllable bg-green-200 border-4 border-green-500 text-6xl md:text-7xl p-4 rounded-3xl flex justify-center items-center animate-pulse";
+                }
+            });
+        }
+
+        // Tela Final
+        function endGame() {
+            playSound('win');
+            document.getElementById('play-screen').classList.add('hidden');
+            document.getElementById('end-screen').classList.remove('hidden');
+
+            document.getElementById('final-score').textContent = `${score} / 10`;
+
+            const ui = uiTranslations[currentLang];
+            const trophy = document.getElementById('trophy-emoji');
+            const title = document.getElementById('end-title');
+            const msg = document.getElementById('end-message');
+
+            if (score === 10) {
+                trophy.textContent = "🏆";
+                title.textContent = ui.winTitle;
+                msg.textContent = ui.winMsg;
+            } else if (score >= 6) {
+                trophy.textContent = "🌟";
+                title.textContent = ui.goodTitle;
+                msg.textContent = ui.goodMsg;
+            } else {
+                trophy.textContent = "🎈";
+                title.textContent = ui.tryTitle;
+                msg.textContent = ui.tryMsg;
+            }
+        }
+    </script>
+</body>
+</html>
